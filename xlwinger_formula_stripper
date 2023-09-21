@@ -1,0 +1,50 @@
+import xlwings as xw
+import argparse
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('file_path', type=str)
+    parser.add_argument('sheet_name_or_index', type=str)
+    args = parser.parse_args()
+
+    try:
+        app = xw.App(visible=False)
+        workbook = app.books.open(args.file_path)
+        sheet = workbook.sheets[args.sheet_name_or_index]
+    except Exception as e:
+        print(f"Error: {e}")
+        return
+
+    csv_file_path = 'output.csv'
+    empty_row_count = 0  # Track consecutive empty rows
+    with open(csv_file_path, 'w') as csv_file:
+        for row in sheet.used_range.rows:
+            row_data = []
+            row_is_empty = True  # Assume the row is empty initially
+            for cell in row:
+                if cell.formula:
+                    row_data.append(cell.formula)
+                    row_is_empty = False  # If there's a formula, row is not empty
+                else:
+                    row_data.append('')
+            csv_file.write(','.join(row_data) + '\n')
+            
+            # Check if the row is empty and update the empty_row_count
+            if row_is_empty:
+                empty_row_count += 1
+            else:
+                empty_row_count = 0
+            
+            # Stop scanning when there are 30 consecutive empty rows
+            if empty_row_count >= 30:
+                break
+
+    app.quit()
+
+if __name__ == "__main__":
+    main()
+
+
+# usage : python3 xlwinger.py filename sheetname
+# example : python3 xlwinger.py Local_PT_takeaways_v3b.xlsm OutputData
+
